@@ -1,0 +1,1403 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- Single-file, upload-only build of the PE Deal Screening Prototype. PDFs are read locally in the browser. -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PE Deal Screening Prototype</title>
+  <meta name="description" content="Synthetic AI-assisted preliminary deal screening workflow. Independent learning prototype; no real company or client data.">
+  <style>
+:root {
+  --ink: #16202e;
+  --ink-2: #3d4a5c;
+  --ink-3: #6a7687;
+  --line: #dde2e8;
+  --line-2: #eef1f4;
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --navy: #14284b;
+  --navy-2: #1f3a66;
+
+  --met: #1f6f47;
+  --met-bg: #e8f4ed;
+  --met-line: #b9dcc7;
+  --notmet: #a8231b;
+  --notmet-bg: #fcebea;
+  --notmet-line: #efbdb9;
+  --insuf: #8a5a00;
+  --insuf-bg: #fff4dc;
+  --insuf-line: #efd49a;
+  --neutral: #4a5566;
+  --neutral-bg: #eef1f4;
+
+  --radius: 8px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--navy-2); }
+h1, h2, h3 { margin: 0; line-height: 1.25; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+/* ---------- header ---------- */
+.site-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--navy);
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.header-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-top: 14px; padding-bottom: 14px; }
+.brand h1 { font-size: 19px; font-weight: 650; letter-spacing: 0.1px; }
+.subtitle { margin: 2px 0 0; font-size: 13px; color: #b9c4d6; }
+.section-nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.section-nav a {
+  color: #d5dcea; text-decoration: none; font-size: 13px;
+  padding: 6px 10px; border-radius: 6px;
+}
+.section-nav a:hover, .section-nav a:focus-visible { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+.notice-bar { background: #e9edf4; border-bottom: 1px solid var(--line); color: var(--ink-2); font-size: 13px; }
+.notice-bar .wrap { padding-top: 8px; padding-bottom: 8px; }
+
+main { padding-top: 24px; padding-bottom: 40px; }
+
+/* ---------- deal picker ---------- */
+.deal-picker { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.picker-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+.segmented { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 3px; box-shadow: var(--shadow); }
+.segmented button {
+  font: inherit; font-size: 14px; font-weight: 550;
+  border: 0; background: transparent; color: var(--ink-2);
+  padding: 8px 18px; border-radius: 6px; cursor: pointer;
+}
+.segmented button:hover { background: var(--line-2); }
+.segmented button.active { background: var(--navy); color: #fff; }
+.segmented button:focus-visible { outline: 2px solid var(--navy-2); outline-offset: 2px; }
+.picker-note { margin: 0; font-size: 13px; color: var(--ink-3); }
+
+.load-error {
+  background: var(--notmet-bg); border: 1px solid var(--notmet-line); color: var(--ink);
+  padding: 16px 18px; border-radius: var(--radius); margin-bottom: 20px;
+}
+
+/* ---------- panels ---------- */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 22px 24px;
+  margin-bottom: 20px;
+}
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+.panel h2 { font-size: 17px; font-weight: 650; }
+.panel-meta { font-size: 13px; color: var(--ink-3); }
+.panel-intro { margin: 0 0 16px; color: var(--ink-2); font-size: 14px; max-width: 860px; }
+
+/* ---------- overview ---------- */
+.overview-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0; margin: 14px 0 0; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden;
+}
+.ov-item { padding: 12px 14px; border-right: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); }
+.ov-item dt { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 4px; }
+.ov-item dd { margin: 0; font-size: 14.5px; }
+.ov-item.is-missing dd, .is-missing { color: var(--insuf); font-style: italic; }
+
+/* ---------- chips & tally ---------- */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+  padding: 3px 9px; border-radius: 999px; border: 1px solid transparent;
+}
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip.met, .chip.provided { color: var(--met); background: var(--met-bg); border-color: var(--met-line); }
+.chip.notmet { color: var(--notmet); background: var(--notmet-bg); border-color: var(--notmet-line); }
+.chip.insufficient, .chip.missing, .chip.ambiguous { color: var(--insuf); background: var(--insuf-bg); border-color: var(--insuf-line); }
+.chip.neutral { color: var(--neutral); background: var(--neutral-bg); border-color: var(--line); }
+.chip.neutral::before { display: none; }
+/* Shape cue in addition to colour: dashed outline marks "not yet known". */
+.chip.insufficient, .chip.missing, .chip.ambiguous { border-style: dashed; }
+
+.tally { display: flex; gap: 8px; flex-wrap: wrap; }
+.tally-item { font-size: 13px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line); color: var(--ink-2); background: var(--surface); }
+.tally-item strong { font-size: 14px; }
+.tally-item.met strong { color: var(--met); }
+.tally-item.notmet strong { color: var(--notmet); }
+.tally-item.insufficient strong { color: var(--insuf); }
+
+.legend { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.legend-note { font-size: 12.5px; color: var(--ink-3); margin-left: 4px; }
+
+/* ---------- criteria cards ---------- */
+.criteria-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.crit-card {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  border-top: 4px solid var(--line);
+  padding: 14px 16px 12px; background: var(--surface);
+  display: flex; flex-direction: column;
+}
+.crit-card.met { border-top-color: var(--met); }
+.crit-card.notmet { border-top-color: var(--notmet); }
+.crit-card.insufficient { border-top-color: #d99a16; border-top-style: dashed; }
+.crit-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.crit-top h3 { font-size: 14.5px; font-weight: 650; }
+.crit-value { margin: 10px 0 12px; font-size: 14px; color: var(--ink); flex: 1; }
+
+details.evidence { border-top: 1px solid var(--line-2); padding-top: 8px; }
+details.evidence summary {
+  cursor: pointer; font-size: 13px; font-weight: 600; color: var(--navy-2);
+  list-style: none; display: inline-flex; align-items: center; gap: 6px;
+}
+details.evidence summary::-webkit-details-marker { display: none; }
+details.evidence summary::before { content: "▸"; font-size: 11px; transition: transform 0.15s ease; }
+details.evidence[open] summary::before { transform: rotate(90deg); }
+details.evidence summary:focus-visible { outline: 2px solid var(--navy-2); outline-offset: 2px; border-radius: 4px; }
+details.evidence dl { margin: 10px 0 2px; display: grid; gap: 8px; }
+.ev-row dt { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); }
+.ev-row dd { margin: 2px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.ev-row.follow-up dd { color: var(--ink); font-weight: 550; }
+.ev-row.muted dd { color: var(--ink-3); }
+
+/* ---------- diligence ---------- */
+.diligence-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dil-item { border: 1px solid var(--line); border-left: 3px dashed #d99a16; border-radius: 6px; padding: 12px 14px; background: #fffdf8; }
+.dil-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
+.dil-topic { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); }
+.dil-what { margin: 0 0 8px; font-weight: 600; font-size: 14px; }
+.dil-question { margin: 0 0 10px; font-size: 14px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 8px 10px; }
+.q-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--navy-2); margin-bottom: 2px; }
+.dil-meta { margin: 0; display: grid; gap: 6px; }
+.dil-meta dt { display: inline; font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.dil-meta dt::after { content: ": "; }
+.dil-meta dd { display: inline; margin: 0; font-size: 12.5px; color: var(--ink-2); }
+
+/* ---------- risks ---------- */
+.risk-list { display: grid; gap: 12px; }
+.risk-item { border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px; }
+.risk-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
+.risk-head h3 { font-size: 14.5px; font-weight: 650; }
+.risk-item p { margin: 0 0 4px; font-size: 14px; }
+.risk-source { color: var(--ink-3); font-size: 12.5px !important; }
+.empty { color: var(--ink-3); font-style: italic; margin: 0; }
+
+/* ---------- human review ---------- */
+.human-review {
+  border: 1px solid #c9d3e3; background: #eef2f8; border-radius: var(--radius);
+  padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap;
+}
+.hr-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--navy); white-space: nowrap; }
+.human-review p { margin: 0; font-size: 14.5px; }
+
+/* ---------- how it works ---------- */
+.how h2 { margin-bottom: 16px; }
+.flow { list-style: none; padding: 0; margin: 0 0 18px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 28px; counter-reset: none; }
+.flow li {
+  position: relative; border: 1px solid var(--line); border-radius: 6px; background: #fafbfc;
+  padding: 12px 12px; display: flex; flex-direction: column; gap: 4px; min-height: 76px;
+}
+.flow li:last-child { border-color: #c9d3e3; background: #eef2f8; }
+.flow li:not(:last-child)::after {
+  content: "→"; position: absolute; right: -21px; top: 50%; transform: translateY(-50%);
+  color: var(--ink-3); font-size: 16px;
+}
+.step-num { font-size: 11px; font-weight: 700; color: var(--ink-3); }
+.step-name { font-size: 14px; font-weight: 600; }
+.how-notes { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; display: grid; gap: 4px; }
+
+/* ---------- footer ---------- */
+.site-footer { border-top: 1px solid var(--line); background: var(--surface); color: var(--ink-3); font-size: 12.5px; }
+.site-footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-top: 14px; padding-bottom: 14px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1000px) {
+  .criteria-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .wrap { padding: 0 16px; }
+  .header-inner { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .site-header { position: static; }
+  html { scroll-padding-top: 0; }
+  .panel { padding: 18px 16px; }
+  .criteria-grid, .diligence-list, .overview-grid { grid-template-columns: 1fr; }
+  .flow { grid-template-columns: 1fr; gap: 22px; }
+  .flow li:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -20px; transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  details.evidence summary::before { transition: none; }
+}
+
+/* ---------- upload new deal ---------- */
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  background: var(--navy); color: #fff; border: 1px solid var(--navy);
+  padding: 8px 16px; border-radius: 6px;
+}
+.btn:hover { background: var(--navy-2); }
+.btn:focus-visible { outline: 2px solid var(--navy-2); outline-offset: 2px; }
+.btn-secondary { background: var(--surface); color: var(--navy); border-color: var(--line); }
+.btn-secondary:hover { background: var(--line-2); }
+
+.upload-notes { margin: 6px 0 14px; padding-left: 18px; color: var(--ink-2); font-size: 14px; display: grid; gap: 2px; }
+.dropzone {
+  border: 2px dashed #b8c3d4; border-radius: var(--radius); background: #fafbfd;
+  padding: 28px 16px; text-align: center; cursor: pointer;
+}
+.dropzone:hover, .dropzone.drag { border-color: var(--navy-2); background: #eef2f8; }
+.dropzone:focus-visible { outline: 2px solid var(--navy-2); outline-offset: 2px; }
+.dz-title { margin: 0; font-weight: 600; font-size: 15px; }
+.dz-or { margin: 4px 0 10px; color: var(--ink-3); font-size: 13px; }
+.upload-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.upload-status { font-size: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; padding: 8px 12px; border-radius: 6px; background: var(--line-2); flex: 1; }
+.upload-status .file-name { font-weight: 600; word-break: break-all; }
+.upload-status .file-size { color: var(--ink-3); }
+.upload-status.busy .status-msg { color: var(--navy-2); }
+.upload-status.busy .status-msg::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -1px; }
+.upload-status.done { background: var(--met-bg); }
+.upload-status.error { background: var(--notmet-bg); color: var(--notmet); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.upload-fineprint { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-3); }
+
+.table-scroll { overflow-x: auto; }
+.review-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.review-table th, .review-table td { text-align: left; vertical-align: top; padding: 10px 10px; border-bottom: 1px solid var(--line-2); }
+.review-table thead th { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); font-weight: 600; border-bottom: 1px solid var(--line); }
+.review-table tbody th { font-weight: 600; width: 190px; }
+.review-table .rv-input { width: 300px; }
+.review-table input, .review-table select {
+  width: 100%; font: inherit; font-size: 14px; padding: 6px 8px;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink);
+}
+.review-table input:focus, .review-table select:focus { outline: 2px solid var(--navy-2); outline-offset: 0; }
+.review-table tr.is-corrected { background: #f4f6fb; }
+.used-tag { display: block; font-size: 11px; font-weight: 500; color: var(--ink-3); }
+.rv-source { color: var(--ink-2); }
+.src-page { font-weight: 600; color: var(--ink-3); }
+.src-note { font-size: 12.5px; color: var(--ink-3); margin-top: 4px; }
+.muted { color: var(--ink-3); }
+.corrected { margin-top: 6px; }
+.chip.corrected-chip { color: var(--navy); background: #e6ebf5; border-color: #c9d3e3; border-style: solid; }
+.chip.corrected-chip::before { display: none; }
+.crit-card > .chip.corrected-chip { align-self: flex-start; margin: -4px 0 10px; }
+.link-btn { font: inherit; font-size: 12.5px; color: var(--navy-2); background: none; border: 0; padding: 0; margin-top: 4px; cursor: pointer; text-decoration: underline; }
+
+@media (max-width: 760px) {
+  .review-table thead { display: none; }
+  .review-table, .review-table tbody, .review-table tr, .review-table th, .review-table td { display: block; width: auto; }
+  .review-table tr { border: 1px solid var(--line); border-radius: 6px; margin-bottom: 10px; padding: 4px 0; }
+  .review-table th, .review-table td { border-bottom: 0; padding: 6px 12px; }
+  .review-table .rv-input { width: auto; }
+  .upload-row { flex-direction: column; align-items: stretch; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .upload-status.busy .status-msg::before { animation: none; }
+}
+
+/* single-file build */
+.standalone-intro { margin: 0 0 16px; }
+
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <div class="brand">
+        <h1>PE Deal Screening Prototype</h1>
+        <p class="subtitle">Synthetic AI-assisted preliminary deal screening workflow</p>
+      </div>
+      <nav class="section-nav" aria-label="Sections">
+        <a href="#overview">Overview</a>
+        <a href="#screening">Screening</a>
+        <a href="#diligence">Diligence</a>
+        <a href="#risks">Risks</a>
+        <a href="#how-it-works">How it works</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="notice-bar" role="note">
+    <div class="wrap">Independent synthetic learning prototype. No real company or client data.</div>
+  </div>
+
+  <main class="wrap">
+
+    <p class="picker-note standalone-intro">Screens a deal PDF you choose, entirely in this browser, with simple deterministic rules. Results are preliminary and need human review.</p>
+
+    <section id="upload-panel" class="panel upload-panel" aria-labelledby="upload-title">
+      <div class="panel-head">
+        <h2 id="upload-title">Upload new deal</h2>
+      </div>
+      <ul class="upload-notes">
+        <li><strong>PDF processing occurs locally in your browser. Files are not uploaded.</strong></li>
+        <li>Prototype supports text-based PDFs. Scanned/image-only PDFs may require OCR in a production version.</li>
+        <li>Facts are found with simple text patterns, not general AI document understanding. Review every value before relying on it.</li>
+      </ul>
+      <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Drop a PDF here or press Enter to choose a file">
+        <p class="dz-title">Drag and drop a deal PDF here</p>
+        <p class="dz-or">or</p>
+        <label class="btn" for="file-input">Choose PDF</label>
+        <input type="file" id="file-input" accept="application/pdf,.pdf" class="visually-hidden">
+      </div>
+      <div class="upload-row">
+        <div id="upload-status" class="upload-status" role="status" aria-live="polite" hidden></div>
+        <button type="button" id="upload-clear" class="btn btn-secondary" hidden>Clear / Start over</button>
+      </div>
+      <p class="upload-fineprint">The PDF reader (Mozilla PDF.js) is loaded from the jsDelivr CDN the first time you choose a file. Only the reader's code is downloaded; your PDF is never sent anywhere. Corrections exist only in this browser tab and disappear when you leave or reload.</p>
+    </section>
+
+    <section id="review-panel" class="panel review-panel" hidden aria-labelledby="review-title">
+      <div class="panel-head">
+        <h2 id="review-title">Review extracted facts</h2>
+        <button type="button" id="export-json" class="btn btn-secondary">Download screening result (JSON)</button>
+      </div>
+      <p class="panel-intro">Check each value against the document and correct it if needed. Screening below updates immediately. Corrected values are marked, and nothing is saved.</p>
+      <div class="table-scroll">
+        <table class="review-table">
+          <thead>
+            <tr><th scope="col">Field</th><th scope="col">Value</th><th scope="col">Evidence status</th><th scope="col">Text found in document</th></tr>
+          </thead>
+          <tbody id="review-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div id="deal-content" aria-live="polite" hidden>
+      <section id="overview" class="panel">
+        <div class="panel-head">
+          <h2>Deal overview</h2>
+          <div class="panel-meta" id="overview-meta"></div>
+        </div>
+        <dl class="overview-grid" id="overview-grid"></dl>
+      </section>
+
+      <section id="screening" class="panel">
+        <div class="panel-head">
+          <h2>Screening summary</h2>
+          <div class="tally" id="tally" aria-label="Criteria result counts"></div>
+        </div>
+        <p class="panel-intro">Each criterion from the fund's investment criteria is assessed on its own. Counts are shown for scanning only; there is no overall score, ranking, or recommendation.</p>
+        <div class="legend" aria-label="Result legend">
+          <span class="chip met">Met</span>
+          <span class="chip notmet">Not met</span>
+          <span class="chip insufficient">Insufficient information</span>
+          <span class="legend-note">Insufficient information means the source does not say enough to decide. It is not a failure.</span>
+        </div>
+        <div class="criteria-grid" id="criteria-grid"></div>
+      </section>
+
+      <section id="diligence" class="panel">
+        <div class="panel-head">
+          <h2>Missing information &amp; diligence</h2>
+          <div class="panel-meta" id="diligence-meta"></div>
+        </div>
+        <p class="panel-intro">Gaps are preserved rather than guessed. Each item below is something the deal team needs to find out; none of them counts as a failed criterion.</p>
+        <div class="diligence-list" id="diligence-list"></div>
+      </section>
+
+      <section id="risks" class="panel">
+        <div class="panel-head">
+          <h2>Preliminary risks</h2>
+          <div class="panel-meta" id="risks-meta"></div>
+        </div>
+        <p class="panel-intro">Only risks supported by an explicit fact in the source document. Missing information is not treated as a risk.</p>
+        <div class="risk-list" id="risk-list"></div>
+      </section>
+
+      <section class="human-review" aria-label="Human review">
+        <div class="hr-label">Human review required</div>
+        <p>This prototype supports preliminary screening and diligence. Final investment decisions remain with human investors.</p>
+      </section>
+    </div>
+
+    <section id="how-it-works" class="panel how">
+      <h2>How it works</h2>
+      <ol class="flow">
+        <li><span class="step-num">1</span><span class="step-name">Deal Document</span></li>
+        <li><span class="step-num">2</span><span class="step-name">Structured Extraction</span></li>
+        <li><span class="step-num">3</span><span class="step-name">Investment Criteria</span></li>
+        <li><span class="step-num">4</span><span class="step-name">Screening Assessment</span></li>
+        <li><span class="step-num">5</span><span class="step-name">Human Review</span></li>
+      </ol>
+      <ul class="how-notes">
+        <li><strong>Synthetic sources.</strong> Every deal document is fictional and created for this prototype.</li>
+        <li><strong>Structured data.</strong> Facts are extracted from the source document into a normalized record, each with its page reference.</li>
+        <li><strong>Gaps preserved.</strong> Missing or unclear information is recorded as missing or ambiguous rather than guessed.</li>
+        <li><strong>Independent criteria.</strong> Each investment criterion is evaluated separately as Met, Not met, or Insufficient information.</li>
+        <li><strong>Human review.</strong> Results support preliminary screening only; people make the investment decisions.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>PE Deal Screening Prototype · Independent synthetic learning prototype. No real company or client data.</span>
+      <span id="footer-source"></span>
+    </div>
+  </footer>
+
+  <script>
+// EXTRACTION — "What facts can we identify?"
+//
+// Pure functions over text taken from a PDF. They look for simple, explainable patterns
+// (labelled lines such as "2025 revenue: $42 million", or sentences such as
+// "Customers are primarily in the United States and Canada.") and record the text they used.
+//
+// Extraction never decides whether a criterion is Met. Every field it returns has:
+//   status: "Provided" | "Missing" | "Ambiguous"
+//   value:  the fact (null unless Provided)
+//   source: { page, text } — the exact line or sentence used, when there is one
+//   note:   why a field is Missing or Ambiguous
+// If a pattern does not clearly establish a fact, the field stays Missing or Ambiguous.
+
+const DealExtract = (() => {
+  // A sentence that says information is absent ("does not state…", "not provided", "no information").
+  const ABSENCE = /\b(?:does|do|did)\s+not\s+(?:state|disclose|specify|say|provide|indicate|mention)\b|\bdoesn['’]t\s+(?:state|say|disclose)\b|\bnot\s+(?:stated|provided|disclosed|specified|available|known)\b|\bno\s+(?:additional\s+)?(?:information|details|data)\b|\bunknown\b/i;
+
+  const MONEY = String.raw`(?<sign>\(|-|−)?\$\s*(?<num>\d[\d,]*(?:\.\d+)?)\s*(?<unit>million|mm|mn|m|billion|bn|b|thousand|k)?\b\)?`;
+  const YEAR = String.raw`(?:FY\s?)?(?<year>20\d{2})`;
+
+  // ---------- text preparation ----------
+  const clean = (s) => s.replace(/\s+/g, " ").trim();
+  const complete = (t) => /[.!?]["”)]?$/.test(t);
+  const isKeyValue = (t) => /^[A-Za-z0-9][A-Za-z0-9 /&()'-]{1,40}:\s+\S/.test(t);
+
+  // Split the document into searchable segments: each line, and each sentence of each page.
+  function segments(doc) {
+    const out = [];
+    for (const p of doc.pages) {
+      const lines = p.lines.map((l) => clean(l.replace(/^[•●▪◦*·]\s*/, ""))).filter(Boolean);
+      for (const text of lines) out.push({ page: p.page, text, kind: isKeyValue(text) ? "kv" : "line" });
+      // Labelled "Key: value" lines are complete on their own; only prose lines are joined into sentences.
+      const flat = clean(lines.filter((t) => !isKeyValue(t)).join(" "));
+      for (const s of flat.split(/(?<=[.!?])\s+(?=[A-Z0-9"“($])/)) {
+        const text = s.trim();
+        if (text && !lines.includes(text)) out.push({ page: p.page, text, kind: "sentence" });
+      }
+    }
+    return out;
+  }
+
+  // A segment that can be read on its own: a "Label: value" line or a complete sentence.
+  const readable = (seg) => seg.kind === "kv" || complete(seg.text);
+
+  // Prefer complete, short segments as the quoted source.
+  function best(segs) {
+    const pool = segs.filter(readable).length ? segs.filter(readable) : segs;
+    return pool.slice().sort((a, b) => a.text.length - b.text.length)[0] || null;
+  }
+
+  const src = (seg) => (seg ? { page: seg.page, text: seg.text } : null);
+  const provided = (value, seg, note) => ({ status: "Provided", value, source: src(seg), note: note || null });
+  const missing = (note, seg) => ({ status: "Missing", value: null, source: src(seg || null), note });
+  const ambiguous = (note, seg, candidates) => ({ status: "Ambiguous", value: null, source: src(seg || null), note, candidates: candidates || null });
+
+  function toUSD(groups) {
+    const n = parseFloat(groups.num.replace(/,/g, ""));
+    if (Number.isNaN(n)) return null;
+    const unit = (groups.unit || "").toLowerCase();
+    const mult = /^(million|mm|mn|m)$/.test(unit) ? 1e6 : /^(billion|bn|b)$/.test(unit) ? 1e9 : /^(thousand|k)$/.test(unit) ? 1e3 : 1;
+    if (mult === 1 && n < 100000) return { ambiguousScale: true, raw: `$${groups.num}` };
+    return { value: (groups.sign ? -1 : 1) * n * mult };
+  }
+
+  // ---------- company name ----------
+  function companyName(segs) {
+    const rules = [
+      { re: /^deal\s+[\w-]+\s*[—–:-]\s*(?<v>.{2,80})$/i, kinds: ["line", "kv"] },
+      { re: /^(?:company(?:\s+name)?|target(?:\s+company)?)\s*:\s*(?<v>.{2,80})$/i, kinds: ["kv"] },
+      { re: /^(?<v>[A-Z][\w&.,' -]{2,60}?)\s+(?:is|was)\s+an?\s+(?:[\w-]+\s+){0,3}(?:company|business|provider|firm)\b/, kinds: ["line", "sentence"] },
+      { re: /^(?<v>[A-Z][\w&.' -]{2,60}?)\s+(?:provides|offers|develops|operates|sells|delivers|builds)\b/, kinds: ["line", "sentence"] },
+    ];
+    for (const rule of rules) {
+      for (const seg of segs.filter((s) => rule.kinds.includes(s.kind))) {
+        const m = seg.text.match(rule.re);
+        if (m) return provided(clean(m.groups.v).replace(/[.,;]$/, ""), seg);
+      }
+    }
+    return missing("No company name pattern found.");
+  }
+
+  // ---------- headquarters ----------
+  function headquarters(segs) {
+    for (const seg of segs) {
+      const kv = seg.kind === "kv" && seg.text.match(/^(?:headquarters|hq|headquartered|head office)\s*:\s*(?<v>.+)$/i);
+      if (kv) return provided(clean(kv.groups.v).replace(/[.;]$/, ""), seg);
+    }
+    const hits = segs.filter((s) => readable(s) && /headquartered in\s+[A-Z]/.test(s.text));
+    const seg = best(hits);
+    if (seg) {
+      const m = seg.text.match(/headquartered in\s+(?<v>[A-Z][^.;]+?)(?:[.;]|$)/);
+      if (m) return provided(clean(m.groups.v), seg);
+    }
+    return missing("No headquarters location stated.");
+  }
+
+  // ---------- business description ----------
+  function businessDescription(segs) {
+    const hits = segs.filter((s) => /\b(?:provides|offers|develops|sells|operates|delivers|builds)\b/i.test(s.text) && !ABSENCE.test(s.text));
+    const seg = best(hits);
+    return seg ? provided(seg.text.replace(/^company overview\s+/i, ""), seg) : missing("No business description found.");
+  }
+
+  // ---------- sector ----------
+  const B2B_SOFTWARE = /\b(?:business-to-business|b2b)\s+(?:software|saas|platform|technology)\b|\benterprise\s+(?:software|saas)\b|\bsoftware(?:-as-a-service)?\s+(?:platform\s+)?(?:for|to)\s+(?:[\w-]+\s+){0,3}(?:businesses|companies|enterprises|firms|organizations)\b/i;
+  const TECH_ENABLED = /\btech(?:nology)?-enabled\s+(?:business\s+)?services?\b/i;
+
+  function sector(segs, description) {
+    const unclear = best(segs.filter((s) => ABSENCE.test(s.text) && /\b(?:software|services?|offering|customers?|buy|sell)\b/i.test(s.text)));
+    const b2b = best(segs.filter((s) => B2B_SOFTWARE.test(s.text)));
+    const tes = best(segs.filter((s) => TECH_ENABLED.test(s.text)));
+    const positive = b2b || tes;
+    if (positive && !unclear) {
+      return provided(b2b ? "B2B software" : "Technology-enabled business services", positive);
+    }
+    if (positive && unclear) {
+      return ambiguous("The document describes the offering but also states that part of it is unclear.", unclear);
+    }
+    if (unclear) {
+      return ambiguous("The document does not establish whether customers are primarily businesses or how central the technology is to what customers buy.", unclear);
+    }
+    if (description.status === "Provided") {
+      return ambiguous("A business description exists, but it does not explicitly establish B2B software or technology-enabled business services.", description.source && { page: description.source.page, text: description.source.text });
+    }
+    return missing("No business description or sector language found.");
+  }
+
+  // ---------- customer geography ----------
+  const US_CA_NAMES = /\b(?:united states|canada|north america)\b/i;
+  const US_CA_ABBR = /\bU\.S\.(?:A\.)?|\bUSA\b|\bUS\b/; // case-sensitive so the word "us" does not match
+  const OTHER_REGION = /\b(?:europe(?:an)?|united kingdom|UK|asia|china|india|japan|latin america|south america|mexico|brazil|africa|middle east|australia|germany|france|global(?:ly)?|international(?:ly)?|worldwide|EMEA|APAC)\b/i;
+
+  function classifyRegion(text) {
+    const us = US_CA_NAMES.test(text) || US_CA_ABBR.test(text), other = OTHER_REGION.test(text);
+    if (us && !other) return "Primarily United States and/or Canada";
+    if (!us && other) return "Primarily outside the United States and Canada";
+    return null;
+  }
+
+  function geography(segs, hq) {
+    const found = [];
+    for (const seg of segs) {
+      if (seg.kind === "kv") {
+        const m = seg.text.match(/^(?:customer\s+geography|customer\s+location|geography|markets?|regions?\s+served)\s*:\s*(?<v>.+)$/i);
+        if (m) found.push({ seg, region: clean(m.groups.v) });
+      } else if (readable(seg) && !ABSENCE.test(seg.text)) {
+        const m = seg.text.match(/\b(?:customers?|clients?|revenue|sales)\s+(?:are|is|were|was)\s+(?:located\s+|based\s+|generated\s+)?(?:(?:primarily|predominantly|mainly|mostly|largely|principally)\s+)?(?:located\s+|based\s+|generated\s+)?(?:in|from)\s+(?:the\s+)?(?<v>[^.;]+)/i);
+        if (m) found.push({ seg, region: clean(m.groups.v) });
+      }
+    }
+    if (found.length) {
+      const pick = found.slice().sort((a, b) => a.seg.text.length - b.seg.text.length)[0];
+      const classes = [...new Set(found.map((f) => classifyRegion(f.region)))];
+      if (classes.length === 1 && classes[0]) return { ...provided(classes[0], pick.seg), text: pick.region };
+      return { ...ambiguous(`Customer location is described ("${pick.region}") but cannot be classified clearly.`, pick.seg), text: pick.region };
+    }
+    const absent = best(segs.filter((s) => ABSENCE.test(s.text) && /\b(?:geograph|customers?\s+(?:are\s+)?located|region)/i.test(s.text)));
+    if (absent) return missing("The document states that customer geography is not provided.", absent);
+    if (hq.status === "Provided") return { ...ambiguous("Only the headquarters location is stated; customer geography is not stated.", hq.source && { page: hq.source.page, text: hq.source.text }), text: null };
+    return { ...missing("No customer geography stated."), text: null };
+  }
+
+  // ---------- financials (revenue and EBITDA by year) ----------
+  function collectByYear(segs, patterns, exclude) {
+    const byYear = {};
+    const yearless = [];
+    for (const seg of segs) {
+      for (const { re, needsTopic } of patterns) {
+        if (needsTopic && (!needsTopic.test(seg.text) || (exclude && exclude.test(seg.text)))) continue;
+        for (const m of seg.text.matchAll(re)) {
+          const money = toUSD(m.groups);
+          if (!money) continue;
+          const entry = { seg, money, adjusted: /adjusted/i.test(m[0]) };
+          if (m.groups.year) (byYear[m.groups.year] = byYear[m.groups.year] || []).push(entry);
+          else yearless.push(entry);
+        }
+      }
+    }
+    return { byYear, yearless };
+  }
+
+  function resolve(entries, label) {
+    if (!entries || !entries.length) return null;
+    const scaled = entries.filter((e) => !e.money.ambiguousScale);
+    if (!scaled.length) {
+      return ambiguous(`${label} is stated without a clear unit (${entries[0].money.raw}).`, best(entries.map((e) => e.seg)));
+    }
+    const values = [...new Set(scaled.map((e) => e.money.value))];
+    const seg = best(scaled.map((e) => e.seg));
+    if (values.length > 1) {
+      return ambiguous(`${label} has conflicting values in the document.`, seg, values);
+    }
+    const adjusted = scaled.some((e) => e.adjusted);
+    return provided(values[0], seg, adjusted ? "The document labels this figure as adjusted." : null);
+  }
+
+  function revenue(segs) {
+    const patterns = [
+      { re: new RegExp(String.raw`\b${YEAR}\s+(?:annual\s+|total\s+|net\s+)?revenues?\b[^$\d(−-]{0,25}${MONEY}`, "gi") },
+      { re: new RegExp(String.raw`\brevenues?\b[^$.]{0,40}?\b(?:in|for|during)\s+${YEAR}[^$\d]{0,25}${MONEY}`, "gi") },
+      { re: new RegExp(String.raw`${MONEY}\s+(?:in|for|during)\s+${YEAR}`, "gi"), needsTopic: /\brevenues?\b/i },
+    ];
+    const { byYear } = collectByYear(segs, patterns, /\bEBITDA\b|\bmargin\b|\bincome\b/i);
+    const years = {};
+    for (const [year, entries] of Object.entries(byYear)) years[year] = resolve(entries, `${year} revenue`);
+    return years;
+  }
+
+  function ebitda(segs) {
+    const patterns = [
+      { re: new RegExp(String.raw`\b${YEAR}\s+(?:adjusted\s+)?EBITDA\b[^$\d(−-]{0,25}${MONEY}`, "gi") },
+      { re: new RegExp(String.raw`\b(?:adjusted\s+)?EBITDA\b[^$.]{0,40}?\b(?:in|for|during)\s+${YEAR}[^$\d]{0,25}${MONEY}`, "gi") },
+      { re: new RegExp(String.raw`${MONEY}\s+(?:of\s+)?(?:adjusted\s+)?EBITDA\s+(?:in|for|during)\s+${YEAR}`, "gi") },
+    ];
+    const { byYear } = collectByYear(segs, patterns);
+    const years = {};
+    for (const [year, entries] of Object.entries(byYear)) years[year] = resolve(entries, `${year} EBITDA`);
+    if (!Object.keys(years).length) {
+      const loose = collectByYear(segs, [{ re: new RegExp(String.raw`\b(?:adjusted\s+)?EBITDA\b[^$.\d]{0,25}${MONEY}`, "gi") }]);
+      if (loose.yearless.length) {
+        return { years, undated: ambiguous("EBITDA is stated without a year.", best(loose.yearless.map((e) => e.seg))) };
+      }
+    }
+    return { years, undated: null };
+  }
+
+  // ---------- ownership / control ----------
+  const OWNERSHIP_TOPIC = /\b(?:owns?|owned|owner(?:s|ship)?|stake|shareholders?|equity|control(?:ling)?|majority|minority|recapitali[sz]ation|buyout)\b/i;
+  const CONTROL_POSSIBLE = /\b(?:willing|open|prepared|looking|seeking|intends?|plans?)\s+to\s+(?:sell(?:ing)?|divest(?:ing)?|consider(?:ing)?|explor(?:e|ing)|pursu(?:e|ing))\b[^.]*\b(?:majority|control(?:ling)?|100%|entire|all\s+of)\b|\b(?:majority|control(?:ling)?)\s+(?:stake|interest|position|investment|transaction|recapitali[sz]ation|sale)\b[^.]*\b(?:is\s+)?(?:available|possible|offered|on\s+offer|for\s+sale|acceptable)\b|\bsale\s+of\s+(?:a\s+)?(?:majority|control(?:ling)?|100%)/i;
+  const CONTROL_NOT_POSSIBLE = /\bminority\s+(?:stake|investment|interest)s?\s+only\b|\bonly\s+(?:(?:a|consider|accept)\s+)*minority\b|\bnot\s+(?:willing|open|prepared)\s+to\s+(?:sell|cede|give\s+up)\b[^.]*\b(?:majority|control)\b|\b(?:retain|keep|maintain)\b[^.]*\b(?:majority|control)\b/i;
+
+  function ownership(segs) {
+    const topical = segs.filter((s) => readable(s) && OWNERSHIP_TOPIC.test(s.text));
+    const stated = topical.filter((s) => !ABSENCE.test(s.text));
+    const pos = stated.filter((s) => CONTROL_POSSIBLE.test(s.text));
+    const neg = stated.filter((s) => CONTROL_NOT_POSSIBLE.test(s.text));
+    const language = [...new Set(stated.filter((s) => s.kind === "kv" || s.text.length < 200).map((s) => s.text))].slice(0, 3);
+    if (pos.length && !neg.length) return { ...provided("Control or majority investment possible", best(pos)), text: language.join(" · ") };
+    if (neg.length && !pos.length) return { ...provided("Control or majority investment not possible", best(neg)), text: language.join(" · ") };
+    if (pos.length && neg.length) return { ...ambiguous("The document contains both supportive and restrictive control language.", best(pos.concat(neg))), text: language.join(" · ") };
+    const absent = best(topical.filter((s) => ABSENCE.test(s.text)));
+    if (absent) return { ...missing("The document states that ownership or control availability is not provided.", absent), text: null };
+    if (stated.length) return { ...ambiguous("Ownership is mentioned, but the document does not say whether a controlling or majority investment is possible.", best(stated)), text: language.join(" · ") };
+    return { ...missing("No ownership or control language found."), text: null };
+  }
+
+  // ---------- entry point ----------
+  function extractFacts(doc) {
+    const segs = segments(doc);
+    const description = businessDescription(segs);
+    const hq = headquarters(segs);
+    const revenueByYear = revenue(segs);
+    const ebitdaResult = ebitda(segs);
+    const latestEbitda = ebitdaResult.years["2025"] || ebitdaResult.undated ||
+      missing(Object.keys(ebitdaResult.years).length ? `EBITDA found only for ${Object.keys(ebitdaResult.years).join(", ")}; 2025 EBITDA not stated.` : "No EBITDA figure found.");
+    return {
+      company_name: companyName(segs),
+      business_description: description,
+      headquarters: hq,
+      sector: sector(segs, description),
+      geography: geography(segs, hq),
+      revenue_2025: revenueByYear["2025"] || missing("No 2025 revenue figure found."),
+      revenue_2024: revenueByYear["2024"] || missing("No 2024 revenue figure found."),
+      revenue_other_years: Object.fromEntries(Object.entries(revenueByYear).filter(([y]) => y !== "2025" && y !== "2024")),
+      ebitda_2025: latestEbitda,
+      ownership: ownership(segs),
+    };
+  }
+
+  return { extractFacts, segments, classifyRegion };
+})();
+
+
+// SCREENING — "Do those facts meet the business rules?"
+//
+// Deterministic rules applied to facts produced by extract.js (and any reviewer corrections).
+// Screening never reads the PDF. The central rule: if a required fact is Missing or Ambiguous,
+// the result is "Insufficient information" — never "Not met".
+
+const DealScreen = (() => {
+  // Required standards, worded as in criteria/investment_criteria.md.
+  const STANDARDS = {
+    Sector: "Business-to-business software and technology-enabled business services",
+    Geography: "Primarily United States and Canada",
+    "Annual revenue": "$20 million to $80 million",
+    Profitability: "Positive EBITDA",
+    Growth: "At least 10% year-over-year revenue growth",
+    Ownership: "A controlling or majority investment must be possible",
+  };
+  const REVENUE_MIN = 20e6;
+  const REVENUE_MAX = 80e6;
+  const GROWTH_MIN_PERCENT = 10;
+
+  const IN_SECTOR = ["B2B software", "Technology-enabled business services"];
+  const US_CANADA = "Primarily United States and/or Canada";
+  const CONTROL_POSSIBLE = "Control or majority investment possible";
+
+  const FOLLOW_UP = {
+    sector: "Are the company's customers primarily businesses, and how central is its technology to the product or service customers buy?",
+    geography: "Where are the company's customers located, by share of revenue?",
+    revenue_2025: "What was the company's 2025 annual revenue?",
+    revenue_2024: "What was the company's 2024 annual revenue (needed to measure year-over-year growth)?",
+    ebitda_2025: "What was the company's 2025 EBITDA, and is it reported or adjusted?",
+    ownership: "Who owns the company, and would the owners consider a controlling or majority investment?",
+  };
+  const FIELD_LABEL = {
+    sector: "Sector classification", geography: "Customer geography", revenue_2025: "2025 annual revenue",
+    revenue_2024: "2024 annual revenue", ebitda_2025: "2025 EBITDA", ownership: "Ownership / control availability",
+  };
+  const FIELD_TOPIC = {
+    sector: "Sector", geography: "Geography", revenue_2025: "Annual revenue", revenue_2024: "Growth",
+    ebitda_2025: "Profitability", ownership: "Ownership",
+  };
+
+  const money = (n) => `$${(n / 1e6).toFixed(1)}M`;
+  const moneyLong = (n) => `$${(n / 1e6).toFixed(1)} million`;
+
+  function sourceText(field, fileName) {
+    if (field.corrected) {
+      return `Corrected by reviewer in this browser (originally extracted: ${field.original_display})`;
+    }
+    if (!field.source) return field.status === "Provided" ? fileName : `Not found in ${fileName}`;
+    return `${fileName}, page ${field.source.page}: "${field.source.text}"`;
+  }
+
+  // The guard: combine the evidence status of every fact a criterion needs.
+  function evidenceOf(fields) {
+    if (fields.some((f) => f.status === "Missing")) return "Missing";
+    if (fields.some((f) => f.status === "Ambiguous")) return "Ambiguous";
+    return "Provided";
+  }
+
+  function build(name, fields, keys, fileName, decide) {
+    const evidence = evidenceOf(fields);
+    const base = {
+      criterion: name,
+      required_standard: STANDARDS[name],
+      evidence_status: evidence,
+      source: fields.map((f) => sourceText(f, fileName)).join(" | "),
+      corrected: fields.some((f) => f.corrected),
+      original_extracted_value: fields.some((f) => f.corrected) ? fields.map((f) => f.original_display).join("; ") : null,
+    };
+    if (evidence !== "Provided") {
+      const gaps = keys.filter((k, i) => fields[i].status !== "Provided");
+      return {
+        ...base,
+        extracted_value: fields.every((f) => f.status === "Missing") ? null : fields.map((f) => f.display || "Not provided").join("; "),
+        result: "Insufficient information",
+        justification: gaps.map((k, i) => `${FIELD_LABEL[k]}: ${fields[keys.indexOf(k)].note || fields[keys.indexOf(k)].status}`).join(" "),
+        follow_up: gaps.map((k) => FOLLOW_UP[k]).join(" "),
+      };
+    }
+    return { ...base, follow_up: null, ...decide() };
+  }
+
+  function screen(f, fileName) {
+    const criteria = [
+      build("Sector", [f.sector], ["sector"], fileName, () => {
+        const met = IN_SECTOR.includes(f.sector.value);
+        return {
+          extracted_value: f.sector.value,
+          result: met ? "Met" : "Not met",
+          justification: met ? `Classified as ${f.sector.value}, which is within the target sector.` : `Classified as "${f.sector.value}", which is outside the target sector.`,
+        };
+      }),
+      build("Geography", [f.geography], ["geography"], fileName, () => {
+        const met = f.geography.value === US_CANADA;
+        return {
+          extracted_value: f.geography.text ? `${f.geography.text} (${f.geography.value})` : f.geography.value,
+          result: met ? "Met" : "Not met",
+          justification: met ? "Customers are stated to be primarily in the United States and/or Canada." : "Customers are stated to be primarily outside the United States and Canada.",
+        };
+      }),
+      build("Annual revenue", [f.revenue_2025], ["revenue_2025"], fileName, () => {
+        const v = f.revenue_2025.value;
+        const met = v >= REVENUE_MIN && v <= REVENUE_MAX;
+        return {
+          extracted_value: `${moneyLong(v)} (2025)`,
+          result: met ? "Met" : "Not met",
+          justification: `2025 revenue of ${moneyLong(v)} is ${met ? "within" : "outside"} the $20 million to $80 million range.`,
+        };
+      }),
+      build("Profitability", [f.ebitda_2025], ["ebitda_2025"], fileName, () => {
+        const v = f.ebitda_2025.value;
+        const met = v > 0;
+        return {
+          extracted_value: `${moneyLong(v)} EBITDA (2025)`,
+          result: met ? "Met" : "Not met",
+          justification: `2025 EBITDA of ${moneyLong(v)} is ${met ? "positive" : "not positive"}.`,
+        };
+      }),
+      build("Growth", [f.revenue_2024, f.revenue_2025], ["revenue_2024", "revenue_2025"], fileName, () => {
+        const a = f.revenue_2024.value, b = f.revenue_2025.value;
+        if (!(a > 0)) {
+          return { extracted_value: `${money(a)} (2024) → ${money(b)} (2025)`, result: "Insufficient information", evidence_status: "Ambiguous",
+            justification: "Growth cannot be measured from a non-positive prior-year revenue.", follow_up: FOLLOW_UP.revenue_2024 };
+        }
+        const pct = Math.round(((b - a) / a) * 1000) / 10;
+        const met = pct >= GROWTH_MIN_PERCENT;
+        return {
+          extracted_value: `${pct.toFixed(1)}% (${money(a)} in 2024 → ${money(b)} in 2025)`,
+          result: met ? "Met" : "Not met",
+          justification: `Revenue grew from ${money(a)} (2024) to ${money(b)} (2025), which is ${pct.toFixed(1)}%, ${met ? "at or above" : "below"} the 10% threshold.`,
+          calculation: { formula: `(${money(b)} − ${money(a)}) ÷ ${money(a)}`, result_percent: pct },
+        };
+      }),
+      build("Ownership", [f.ownership], ["ownership"], fileName, () => {
+        const met = f.ownership.value === CONTROL_POSSIBLE;
+        return {
+          extracted_value: f.ownership.text ? `${f.ownership.text}` : f.ownership.value,
+          result: met ? "Met" : "Not met",
+          justification: met ? "The document indicates a controlling or majority investment is possible." : "The document indicates a controlling or majority investment is not possible.",
+        };
+      }),
+    ];
+
+    // Missing information: one item per screening fact that is Missing or Ambiguous.
+    const missing_information = Object.keys(FIELD_LABEL)
+      .filter((k) => f[k].status !== "Provided")
+      .map((k) => ({
+        topic: FIELD_TOPIC[k],
+        evidence_status: f[k].status,
+        item: FIELD_LABEL[k] + (f[k].note ? ` — ${f[k].note}` : ""),
+        why_needed: `Needed to assess the ${FIELD_TOPIC[k]} criterion.`,
+        diligence_question: FOLLOW_UP[k],
+        source: sourceText(f[k], fileName),
+      }));
+
+    return { criteria, missing_information };
+  }
+
+  return { screen, STANDARDS, IN_SECTOR, US_CANADA, CONTROL_POSSIBLE };
+})();
+
+
+// UPLOAD — browser-only flow for a new deal PDF.
+//
+//   PDF file (stays in this tab) → PDF.js text extraction → DealExtract.extractFacts (extract.js)
+//   → reviewer corrections (memory only) → DealScreen.screen (screen.js) → existing renderers (app.js)
+//
+// External dependency: Mozilla PDF.js, loaded from the jsDelivr CDN the first time a PDF is chosen.
+// Only the library code is downloaded; the PDF itself is read locally and never sent anywhere.
+
+const Upload = (() => {
+  const PDFJS_VERSION = "4.10.38";
+  const PDFJS_BASE = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/`;
+  const MAX_BYTES = 25 * 1024 * 1024;
+  const MAX_PAGES = 200;
+
+  const AMBIGUOUS = "__ambiguous__";
+  const REVIEW_FIELDS = [
+    { key: "company_name", label: "Company name", type: "text" },
+    { key: "business_description", label: "Business description", type: "text" },
+    { key: "headquarters", label: "Headquarters", type: "text" },
+    { key: "sector", label: "Sector classification", type: "select", screening: true,
+      options: ["B2B software", "Technology-enabled business services", "Outside target sector"] },
+    { key: "geography", label: "Customer geography", type: "select", screening: true,
+      options: ["Primarily United States and/or Canada", "Primarily outside the United States and Canada"] },
+    { key: "revenue_2025", label: "2025 annual revenue ($M)", type: "money", screening: true },
+    { key: "revenue_2024", label: "2024 annual revenue ($M)", type: "money", screening: true },
+    { key: "ebitda_2025", label: "2025 EBITDA ($M)", type: "money", screening: true },
+    { key: "ownership", label: "Ownership / control", type: "select", screening: true,
+      options: ["Control or majority investment possible", "Control or majority investment not possible"] },
+  ];
+
+  let state = null; // { file, objectUrl, pages, original, fields }
+  let pdfjs = null;
+  let active = false;
+
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- helpers ----------
+  function display(field, type) {
+    if (field.status === "Missing") return "Not provided";
+    if (field.status === "Ambiguous") return "Unclear";
+    return type === "money" ? `$${(field.value / 1e6).toFixed(1)}M` : String(field.value);
+  }
+
+  function loadPdfJs() {
+    if (!pdfjs) {
+      pdfjs = import(`${PDFJS_BASE}pdf.min.mjs`).then((lib) => {
+        lib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}pdf.worker.min.mjs`;
+        return lib;
+      }).catch((err) => { pdfjs = null; throw err; });
+    }
+    return pdfjs;
+  }
+
+  // Rebuild reading-order lines from PDF.js text items.
+  function itemsToLines(items) {
+    const lines = [];
+    let current = "", lastY = null;
+    for (const item of items) {
+      if (typeof item.str !== "string") continue;
+      const y = item.transform[5];
+      if (lastY !== null && Math.abs(y - lastY) > 2 && current.trim()) { lines.push(current); current = ""; }
+      current += item.str;
+      lastY = y;
+      if (item.hasEOL) { lines.push(current); current = ""; lastY = null; }
+    }
+    if (current.trim()) lines.push(current);
+    return lines.map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+  }
+
+  async function readPdfText(buffer, onProgress) {
+    const lib = await loadPdfJs();
+    const task = lib.getDocument({ data: new Uint8Array(buffer), isEvalSupported: false, disableAutoFetch: true, disableStream: true });
+    const pdf = await task.promise;
+    try {
+      const pages = [];
+      const count = Math.min(pdf.numPages, MAX_PAGES);
+      for (let i = 1; i <= count; i++) {
+        onProgress(`Extracting text from page ${i} of ${count}…`);
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        pages.push({ page: i, lines: itemsToLines(content.items) });
+      }
+      return { pages, totalPages: pdf.numPages };
+    } finally {
+      pdf.destroy();
+    }
+  }
+
+  // ---------- status / panel visibility ----------
+  function setStatus(kind, message) {
+    const box = $("upload-status");
+    box.className = `upload-status ${kind || ""}`;
+    box.replaceChildren();
+    if (state && state.file) {
+      box.append(el("span", { class: "file-name" }, state.file.name), " ",
+        el("span", { class: "file-size" }, `(${(state.file.size / 1024).toFixed(0)} KB)`));
+    }
+    if (message) box.append(el("span", { class: "status-msg" }, message));
+    box.hidden = !box.childNodes.length;
+    $("upload-clear").hidden = !state;
+  }
+
+  function showPanels() {
+    $("upload-panel").hidden = !active;
+    $("review-panel").hidden = !(active && state && state.fields);
+    if (!active) return;
+    const content = $("deal-content");
+    if (state && state.fields) {
+      content.hidden = false;
+      render();
+    } else {
+      content.hidden = true;
+    }
+  }
+
+  // ---------- core flow ----------
+  async function handleFile(file) {
+    reset(false);
+    if (!file) return;
+    const looksPdf = /\.pdf$/i.test(file.name) || file.type === "application/pdf";
+    state = { file };
+    if (!looksPdf) return fail("This file is not a PDF. Choose a .pdf file.");
+    if (file.size > MAX_BYTES) return fail("This PDF is larger than 25 MB, the prototype's limit.");
+    setStatus("busy", "Reading file…");
+    try {
+      const buffer = await file.arrayBuffer();
+      const header = new TextDecoder("latin1").decode(new Uint8Array(buffer.slice(0, 1024)));
+      if (!header.includes("%PDF-")) return fail("This file does not have a valid PDF header.");
+      setStatus("busy", "Loading PDF reader…");
+      const { pages, totalPages } = await readPdfText(buffer, (msg) => setStatus("busy", msg));
+      if (state === null || state.file !== file) return; // cleared or replaced while processing
+      const chars = pages.reduce((n, p) => n + p.lines.join("").length, 0);
+      if (chars < 20) return fail("No selectable text was found. This looks like a scanned or image-only PDF, which would need OCR in a production version.");
+      setStatus("busy", "Identifying facts…");
+      const original = DealExtract.extractFacts({ fileName: file.name, pages });
+      const fields = {};
+      for (const def of REVIEW_FIELDS) {
+        fields[def.key] = { ...original[def.key], corrected: false, display: display(original[def.key], def.type), original_display: display(original[def.key], def.type) };
+      }
+      state = { ...state, objectUrl: URL.createObjectURL(file), pages, original, fields, otherYears: original.revenue_other_years };
+      const truncated = totalPages > MAX_PAGES ? ` Only the first ${MAX_PAGES} of ${totalPages} pages were read.` : "";
+      setStatus("done", `Text extracted from ${pages.length} page${pages.length === 1 ? "" : "s"}. Review the extracted facts below.${truncated}`);
+      renderReview();
+      showPanels();
+    } catch (err) {
+      console.error(err);
+      if (err && err.name === "PasswordException") return fail("This PDF is password-protected and cannot be read.");
+      if (err && /import|fetch|module/i.test(String(err.message))) return fail("The PDF reader library could not be loaded. Check your internet connection and try again.");
+      fail("This PDF could not be read. It may be damaged or use an unsupported format.");
+    }
+  }
+
+  function fail(message) {
+    if (state) state.fields = null;
+    setStatus("error", message);
+    showPanels();
+  }
+
+  function reset(clearInput = true) {
+    if (state && state.objectUrl) URL.revokeObjectURL(state.objectUrl);
+    state = null;
+    if (clearInput) $("file-input").value = "";
+    $("review-body").replaceChildren();
+    setStatus("", "");
+    showPanels();
+  }
+
+  // ---------- review / correction ----------
+  function applyCorrection(def, raw) {
+    const orig = state.original[def.key];
+    let next;
+    if (def.type === "money") {
+      const n = parseFloat(raw);
+      next = raw.trim() === "" || Number.isNaN(n)
+        ? { status: "Missing", value: null, note: "Cleared by reviewer." }
+        : { status: "Provided", value: Math.round(n * 1e6), note: "Entered by reviewer." };
+    } else if (def.type === "select") {
+      next = raw === "" ? { status: "Missing", value: null, note: "Marked not established by reviewer." }
+        : raw === AMBIGUOUS ? { status: "Ambiguous", value: null, note: "Marked unclear by reviewer." }
+        : { status: "Provided", value: raw, note: "Selected by reviewer." };
+    } else {
+      next = raw.trim() === "" ? { status: "Missing", value: null, note: "Cleared by reviewer." } : { status: "Provided", value: raw.trim(), note: "Entered by reviewer." };
+    }
+    const unchanged = next.status === orig.status && next.value === orig.value;
+    const originalDisplay = display(orig, def.type);
+    state.fields[def.key] = unchanged
+      ? { ...orig, corrected: false, display: originalDisplay, original_display: originalDisplay }
+      : { ...next, source: orig.source, text: null, corrected: true, display: display(next, def.type), original_display: originalDisplay };
+    renderReview();
+    render();
+  }
+
+  function inputFor(def, field) {
+    const id = `rv-${def.key}`;
+    let input;
+    if (def.type === "select") {
+      input = el("select", { id },
+        el("option", { value: "" }, "Not established (Missing)"),
+        el("option", { value: AMBIGUOUS }, "Unclear (Ambiguous)"),
+        def.options.map((o) => el("option", { value: o }, o)));
+      input.value = field.status === "Provided" ? field.value : field.status === "Ambiguous" ? AMBIGUOUS : "";
+      input.addEventListener("change", () => applyCorrection(def, input.value));
+    } else {
+      input = el("input", {
+        id, type: def.type === "money" ? "number" : "text", step: def.type === "money" ? "0.1" : null, inputmode: def.type === "money" ? "decimal" : null,
+        placeholder: field.status === "Ambiguous" ? "Unclear — enter a value" : "Not provided",
+      });
+      input.value = field.status === "Provided" ? (def.type === "money" ? String(field.value / 1e6) : field.value) : "";
+      input.addEventListener("change", () => applyCorrection(def, input.value));
+    }
+    input.setAttribute("aria-label", def.label);
+    return input;
+  }
+
+  function renderReview() {
+    const rows = REVIEW_FIELDS.map((def) => {
+      const f = state.fields[def.key];
+      const orig = state.original[def.key];
+      const statusChip = el("span", { class: `chip ${f.status.toLowerCase()}` }, f.status);
+      const evidence = orig.source
+        ? el("span", {}, el("span", { class: "src-page" }, `p.${orig.source.page}`), " “", orig.source.text, "”")
+        : el("span", { class: "muted" }, "No matching text found");
+      const note = orig.note ? el("div", { class: "src-note" }, orig.note) : null;
+      const candidates = orig.candidates ? el("div", { class: "src-note" }, "Values found: " + orig.candidates.map((v) => `$${(v / 1e6).toFixed(1)}M`).join(", ")) : null;
+      const correctedCell = f.corrected
+        ? el("div", { class: "corrected" }, el("span", { class: "chip corrected-chip" }, "Manually corrected"),
+            el("div", { class: "src-note" }, `Extracted: ${f.original_display}`), resetButton(def))
+        : null;
+      return el("tr", { class: f.corrected ? "is-corrected" : null, "data-field": def.key },
+        el("th", { scope: "row" }, def.label, def.screening ? el("span", { class: "used-tag" }, "used in screening") : null),
+        el("td", { class: "rv-input" }, inputFor(def, f), correctedCell),
+        el("td", {}, statusChip),
+        el("td", { class: "rv-source" }, evidence, note, candidates));
+    });
+    if (state.otherYears && Object.keys(state.otherYears).length) {
+      const text = Object.entries(state.otherYears).map(([y, f]) => `${y}: ${display(f, "money")}`).join(" · ");
+      rows.push(el("tr", {}, el("th", { scope: "row" }, "Other revenue years found"), el("td", { colspan: "3", class: "muted" }, text, " (not used; growth compares 2025 with 2024)")));
+    }
+    $("review-body").replaceChildren(...rows);
+  }
+
+  function resetButton(def) {
+    const b = el("button", { type: "button", class: "link-btn" }, "Undo correction");
+    b.addEventListener("click", () => {
+      const orig = state.original[def.key];
+      const d = display(orig, def.type);
+      state.fields[def.key] = { ...orig, corrected: false, display: d, original_display: d };
+      renderReview();
+      render();
+    });
+    return b;
+  }
+
+  // ---------- record for the existing renderers ----------
+  function buildRecord() {
+    const f = state.fields;
+    const { criteria, missing_information } = DealScreen.screen(f, state.file.name);
+    return {
+      deal_id: "upload",
+      deal_name: "Uploaded deal",
+      company_name: f.company_name.status === "Provided" ? f.company_name.value : null,
+      upload: true,
+      sources: [{ id: "U1", file: state.objectUrl, name: state.file.name, type: "pdf", pages: state.pages.length }],
+      extraction: { facts: {
+        headquarters: { value: f.headquarters.status === "Provided" ? f.headquarters.value : null },
+        business_description: { value: f.business_description.status === "Provided" ? f.business_description.value : null },
+      } },
+      screening: { criteria, missing_information, risks: [], risks_not_assessed: true, human_review_required: true },
+    };
+  }
+
+  function render() {
+    if (!active || !state || !state.fields) return;
+    renderRecord(buildRecord());
+  }
+
+  function exportJson() {
+    if (!state || !state.fields) return;
+    const record = buildRecord();
+    const payload = {
+      generated_by: "PE Deal Screening Prototype — in-browser upload screening (deterministic rules)",
+      generated_at: new Date().toISOString(),
+      notice: "Preliminary screening support only. Extraction is heuristic; values may be incomplete. Human review required.",
+      source_file: state.file.name,
+      pages_read: state.pages.length,
+      facts: Object.fromEntries(REVIEW_FIELDS.map((d) => {
+        const f = state.fields[d.key];
+        return [d.key, { value: f.value, status: f.status, source: f.source || null, note: f.note || null, corrected: !!f.corrected, originally_extracted: f.original_display }];
+      })),
+      screening: { criteria: record.screening.criteria, missing_information: record.screening.missing_information },
+      human_review_required: true,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = el("a", { href: url, download: `screening_${state.file.name.replace(/\.pdf$/i, "").replace(/[^\w.-]+/g, "_")}.json` });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // ---------- wiring ----------
+  function init() {
+    const zone = $("dropzone");
+    const input = $("file-input");
+    input.addEventListener("change", () => handleFile(input.files[0]));
+    zone.addEventListener("click", (e) => { if (e.target !== input && !e.target.closest("label")) input.click(); });
+    zone.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } });
+    ["dragenter", "dragover"].forEach((t) => zone.addEventListener(t, (e) => { e.preventDefault(); zone.classList.add("drag"); }));
+    ["dragleave", "dragend"].forEach((t) => zone.addEventListener(t, () => zone.classList.remove("drag")));
+    zone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      zone.classList.remove("drag");
+      const file = e.dataTransfer && e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+    // Stop the browser from opening a PDF dropped outside the zone.
+    ["dragover", "drop"].forEach((t) => window.addEventListener(t, (e) => { if (active) e.preventDefault(); }));
+    $("upload-clear").addEventListener("click", () => reset(true));
+    $("export-json").addEventListener("click", exportJson);
+  }
+
+  function enter() { active = true; showPanels(); }
+  function leave() { active = false; showPanels(); }
+
+  document.addEventListener("DOMContentLoaded", init);
+  return { enter, leave, handleFile, _state: () => state };
+})();
+
+
+// Presentation layer (from app.js): renders the record built by upload.js.
+
+// Display labels for criterion names as they appear in the JSON.
+const CRITERION_LABELS = {
+  "Sector": "Sector",
+  "Geography": "Geography",
+  "Annual revenue": "Annual Revenue",
+  "Profitability": "Profitability",
+  "Growth": "Growth",
+  "Ownership": "Ownership / Control",
+};
+
+// Maps each result and evidence status in the JSON to a visual style.
+const RESULT_CLASS = { "Met": "met", "Not met": "notmet", "Insufficient information": "insufficient" };
+const EVIDENCE_CLASS = { "Provided": "provided", "Missing": "missing", "Ambiguous": "ambiguous" };
+
+const NOT_PROVIDED = "Not provided";
+// ---------- small DOM helper (text only; never injects HTML) ----------
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value === null || value === undefined || value === false) continue;
+    if (key === "class") node.className = value;
+    else node.setAttribute(key, value === true ? "" : value);
+  }
+  for (const child of children.flat()) {
+    if (child === null || child === undefined) continue;
+    node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+  }
+  return node;
+}
+
+function show(value) {
+  return value === null || value === undefined || value === "" ? NOT_PROVIDED : value;
+}
+
+function chip(text, map) {
+  const cls = map[text];
+  if (!cls) console.warn("Unrecognized status in data:", text);
+  return el("span", { class: `chip ${cls || "neutral"}` }, text);
+}
+
+function criterion(record, name) {
+  return record.screening.criteria.find((c) => c.criterion === name);
+}
+
+// ---------- renderers ----------
+function renderOverview(r) {
+  const facts = r.extraction.facts;
+  const source = r.sources[0];
+  const rows = [
+    ["Company", r.company_name],
+    ["Headquarters", show(facts.headquarters && facts.headquarters.value)],
+    ["Business", show(facts.business_description && facts.business_description.value)],
+    ["Customer geography", show(criterion(r, "Geography").extracted_value)],
+    ["Latest annual revenue", show(criterion(r, "Annual revenue").extracted_value)],
+    ["EBITDA / profitability", show(criterion(r, "Profitability").extracted_value)],
+    ["Year-over-year growth", show(criterion(r, "Growth").extracted_value)],
+    ["Ownership / control", show(criterion(r, "Ownership").extracted_value)],
+  ];
+  rows[0][1] = show(r.company_name);
+  document.getElementById("overview-grid").replaceChildren(
+    ...rows.map(([label, value]) =>
+      el("div", { class: `ov-item${value === NOT_PROVIDED ? " is-missing" : ""}` },
+        el("dt", {}, label), el("dd", {}, value)))
+  );
+  const meta = [
+    el("span", {}, r.deal_name, " · Source: "),
+    el("a", { href: source.file, target: "_blank", rel: "noopener" }, source.name || source.file.split("/").pop()),
+  ];
+  meta.push(el("span", {}, " · read in this browser, not saved"));
+  document.getElementById("overview-meta").replaceChildren(...meta);
+}
+
+function renderTally(r) {
+  const results = r.screening.criteria.map((c) => c.result);
+  const count = (label) => results.filter((x) => x === label).length;
+  document.getElementById("tally").replaceChildren(
+    ...["Met", "Not met", "Insufficient information"].map((label) =>
+      el("span", { class: `tally-item ${RESULT_CLASS[label]}`, "data-result": label },
+        el("strong", {}, count(label)), " ", label))
+  );
+}
+
+function evidenceRow(label, value, extraClass) {
+  return el("div", { class: `ev-row${extraClass ? " " + extraClass : ""}` },
+    el("dt", {}, label), el("dd", {}, value));
+}
+
+function renderCriteria(r) {
+  document.getElementById("criteria-grid").replaceChildren(
+    ...r.screening.criteria.map((c) => {
+      const cls = RESULT_CLASS[c.result] || "neutral";
+      const rows = [
+        evidenceRow("Required standard", c.required_standard),
+        evidenceRow("Extracted value", show(c.extracted_value)),
+        evidenceRow("Evidence status", chip(c.evidence_status, EVIDENCE_CLASS)),
+        evidenceRow("Rationale", c.justification),
+      ];
+      if (c.calculation) {
+        rows.push(evidenceRow("Calculation", `${c.calculation.formula} = ${c.calculation.result_percent}%`));
+      }
+      if (c.corrected && c.original_extracted_value) {
+        rows.push(evidenceRow("Originally extracted", c.original_extracted_value));
+      }
+      rows.push(evidenceRow("Source", c.source));
+      rows.push(evidenceRow("Follow-up", c.follow_up || "None required to assess this criterion",
+        c.follow_up ? "follow-up" : "muted"));
+
+      return el("article", { class: `crit-card ${cls}`, "data-criterion": c.criterion, "data-result": c.result },
+        el("div", { class: "crit-top" },
+          el("h3", {}, CRITERION_LABELS[c.criterion] || c.criterion),
+          chip(c.result, RESULT_CLASS)),
+        el("p", { class: `crit-value${c.extracted_value === null ? " is-missing" : ""}` }, show(c.extracted_value)),
+        c.corrected ? el("span", { class: "chip corrected-chip" }, "Manually corrected") : null,
+        el("details", { class: "evidence" },
+          el("summary", {}, "View evidence"),
+          el("dl", {}, rows))
+      );
+    })
+  );
+}
+
+function renderDiligence(r) {
+  const items = r.screening.missing_information;
+  document.getElementById("diligence-meta").textContent =
+    `${items.length} item${items.length === 1 ? "" : "s"} to resolve`;
+  document.getElementById("diligence-list").replaceChildren(
+    ...items.map((m) =>
+      el("article", { class: "dil-item", "data-evidence": m.evidence_status },
+        el("div", { class: "dil-head" },
+          el("span", { class: "dil-topic" }, m.topic),
+          chip(m.evidence_status, EVIDENCE_CLASS)),
+        el("p", { class: "dil-what" }, m.item),
+        el("p", { class: "dil-question" }, el("span", { class: "q-label" }, "Diligence question"), m.diligence_question),
+        el("dl", { class: "dil-meta" },
+          el("div", {}, el("dt", {}, "Why it is needed"), el("dd", {}, m.why_needed)),
+          el("div", {}, el("dt", {}, "Source"), el("dd", {}, m.source)))
+      ))
+  );
+}
+
+function renderRisks(r) {
+  const risks = r.screening.risks;
+  document.getElementById("risks-meta").textContent =
+    risks.length ? `${risks.length} source-supported risk${risks.length === 1 ? "" : "s"}` : "";
+  const list = document.getElementById("risk-list");
+  if (r.screening.risks_not_assessed) {
+    list.replaceChildren(el("p", { class: "empty" },
+      "Risk identification is not performed for uploaded documents in this prototype. Review the source document for risks."));
+    return;
+  }
+  if (!risks.length) {
+    list.replaceChildren(el("p", { class: "empty" }, "None identified beyond the Criteria Assessment."));
+    return;
+  }
+  list.replaceChildren(
+    ...risks.map((k) =>
+      el("article", { class: "risk-item" },
+        el("div", { class: "risk-head" },
+          el("h3", {}, k.risk),
+          el("span", { class: "chip neutral" }, k.status)),
+        el("p", {}, k.supporting_fact),
+        el("p", { class: "risk-source" }, "Source: ", k.source)))
+  );
+}
+
+// Renders the screening record built by upload.js.
+function renderRecord(record) {
+  document.getElementById("deal-content").hidden = false;
+  renderOverview(record);
+  renderTally(record);
+  renderCriteria(record);
+  renderDiligence(record);
+  renderRisks(record);
+  document.getElementById("footer-source").textContent =
+    `Data: extracted in this browser from ${record.sources[0].name} (not saved)`;
+}
+
+Upload.enter();
+
+  </script>
+</body>
+</html>
